@@ -1,0 +1,68 @@
+k<-0
+n<-50
+m<-50
+nsimul<-1000
+for(rho in c(0.0, 0.5, 0.75, 0.9))
+{
+  k<-k+1
+  dprob<-NULL
+  for(delta in seq(1.0, 2.0, by=1))
+  {
+    misprob<-NULL
+    for(isimul in 1:nsimul) {
+	cmat<-matrix(c(1, rho, rho, rho, 1, rho, rho, rho, 1),nrow=3)
+        mu<-cbind(rep(delta,n), rep(0,n), rep(0,n))
+	x1<-rnorm(n,0,1)
+	x2<-rnorm(n,0,1)
+	x3<-rnorm(n,0,1)
+	xa<-cbind(x1,x2,x3)
+	x<-xa%*%chol(cmat)
+	s1<-var(x)
+	xbar1<-apply(x,2,mean)
+	y1<-rnorm(n,0,1)
+	y2<-rnorm(n,0,1)
+	y3<-rnorm(n,0,1)
+	ya<-cbind(y1,y2,y3)
+	y<-ya%*%chol(cmat) + mu%*%chol(cmat)
+	xbar2<-apply(y,2,mean)
+	s2<-var(y)
+	spooled<-((n-1)*s1+(n-1)*s2)/(n+n-2)
+	sinv<-solve(spooled)
+	lda<-t(xbar1-xbar2)%*%sinv
+	mhat<-lda%*%(xbar1+xbar2)/2
+	z1<-rnorm(m,0,1)
+	z2<-rnorm(m,0,1)
+	z3<-rnorm(m,0,1)
+	za<-cbind(z1,z2,z3)
+	z<-za%*%chol(cmat)
+	miscount<-0
+	for(i in 1:m)
+	{
+	  clas1<-z[i,]%*%t(lda)
+	  if(clas1<mhat)miscount<-miscount+1
+	}
+	z1<-rnorm(m,0,1)
+	z2<-rnorm(m,0,1)
+	z3<-rnorm(m,0,1)
+	zb<-cbind(z1,z2,z3)
+	z<-zb%*%chol(cmat) + mu%*%chol(cmat)
+	for(i in 1:m)
+	{
+	  clas2<-z[i,]%*%t(lda)
+	  if(clas2>mhat)miscount<-miscount+1
+	}
+	prob<-miscount/(2*m)
+	misprob<-c(misprob,prob)
+    }
+    dprob<-rbind(dprob,mean(misprob))
+  }
+
+  delta<-seq(1, 2, by=1)
+  if(k==1) {
+    plot(delta, dprob, type="l", xlim=c(1, 2), ylim=c(0.0, 0.6), lty=1, xlab=expression(delta), col=1, ylab="Probability of misclassification")   
+    allprob<-cbind(rho,dprob)
+  }
+  else
+    lines(delta, dprob, lty=k, col=1)
+    allprob<-cbind(allprob,dprob)
+}
